@@ -24,29 +24,29 @@
 import SwiftUI
 
 public struct CrookedText: View {
-
+    
     public enum Position {
         case inside, center, outside
     }
     public enum Direction {
-        case forward, reverse
+        case clockwise, counterclockwise
     }
-
+    
     public let text: String
     public let radius: CGFloat
     public let alignment: Position
     public let direction: Direction
-
+    
     internal var textModifier: (Text) -> Text
     internal var spacing: CGFloat = 0
     internal var advance: CGFloat = 0
-
+    
     @State private var sizes: [CGSize] = []
-
+    
     public init(text: String,
                 radius: CGFloat,
                 alignment: Position = .center,
-                direction: Direction = .forward,
+                direction: Direction = .clockwise,
                 textModifier: @escaping (Text) -> Text = { $0 }) {
         self.text = text
         self.radius = radius
@@ -54,7 +54,7 @@ public struct CrookedText: View {
         self.direction = direction
         self.textModifier = textModifier
     }
-
+    
     private func textRadius(at index: Int) -> CGFloat {
         switch alignment {
         case .inside:
@@ -65,20 +65,21 @@ public struct CrookedText: View {
             return radius + size(at: index).height / 2
         }
     }
-
+    
     public var body: some View {
         VStack {
             ZStack {
                 ForEach(textAsCharacters()) { item in
                     PropagateSize {
                         self.textView(char: item)
+                            .scaleEffect(scaleSize())
                     }
-                    .frame(width: self.size(at: item.index).width,
-                           height: self.size(at: item.index).height)
+                    .frame(width: self.size(at: index(item.index)).width,
+                           height: self.size(at: index(item.index)).height)
                     .offset(x: 0,
-                            y: -self.textRadius(at: item.index))
-                    .rotationEffect(self.angle(at: item.index))
-                }
+                            y: -self.textRadius(at: index(item.index)))
+                    .rotationEffect(self.angle(at: index(item.index)))
+               }
             }
             .frame(width: radius * 2, height: radius * 2)
             .onPreferenceChange(TextViewSizeKey.self) { sizes in
@@ -87,9 +88,34 @@ public struct CrookedText: View {
         }
         .accessibility(label: Text(text))
     }
+    
+    private func scaleSize() -> CGSize {
+        switch self.direction {
+        case .clockwise: CGSize(width: 1, height: 1)
+        case .counterclockwise: CGSize(width: -1, height: -1)
+        }
+    }
+    
+    private func transformEffect() -> CGAffineTransform {
+        switch self.direction {
+        case .clockwise: CGAffineTransform()
+        case .counterclockwise: CGAffineTransform(scaleX: -1, y: -1)
+        }
+    }
+    
+    private func index(_ index: Int) -> Int {
+        switch self.direction {
+        case .clockwise: index
+        case .counterclockwise: text.count - index - 1
+        }
+    }
 
     private func textAsCharacters() -> [IdentifiableCharacter] {
-        text.enumerated().map(IdentifiableCharacter.init)
+        if (self.direction == .clockwise) {
+            text.enumerated().map(IdentifiableCharacter.init)
+        } else {
+            text.enumerated().reversed().map(IdentifiableCharacter.init)
+        }
     }
 
     private func textView(char: IdentifiableCharacter) -> some View {
@@ -116,5 +142,24 @@ public struct CrookedText: View {
         let arcCharCenteringOffset = -totalArcWidth / 2
         let charArcOffset = prevArcWidth + charOffset + arcCharCenteringOffset + arcSpacingOffset + prevArcSpacingWidth
         return Angle(radians: charArcOffset + self.advance)
+    }
+}
+
+#Preview {
+    VStack {
+        ZStack {
+            Circle().fill(Color.yellow).frame(width: 150, height: 150)
+            CrookedText(text: "Clockwize", radius: 75, alignment: .inside)
+        }
+        ZStack {
+            Circle().fill(Color.yellow).frame(width: 150, height: 150)
+            CrookedText(text: "Counter Clockwise", radius: 75, alignment: .inside, direction: .counterclockwise)
+                .advance(radians: .pi)
+        }
+        ZStack {
+            Circle().fill(Color.yellow).frame(width: 100, height: 100)
+            CrookedText(text: "advanced", radius: 50)
+                .advance(radians: 3.14159)
+        }
     }
 }
