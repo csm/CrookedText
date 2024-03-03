@@ -28,23 +28,30 @@ public struct CrookedText: View {
     public enum Position {
         case inside, center, outside
     }
+    public enum Direction {
+        case forward, reverse
+    }
 
     public let text: String
     public let radius: CGFloat
     public let alignment: Position
+    public let direction: Direction
 
     internal var textModifier: (Text) -> Text
     internal var spacing: CGFloat = 0
+    internal var advance: CGFloat = 0
 
     @State private var sizes: [CGSize] = []
 
     public init(text: String,
                 radius: CGFloat,
                 alignment: Position = .center,
+                direction: Direction = .forward,
                 textModifier: @escaping (Text) -> Text = { $0 }) {
         self.text = text
         self.radius = radius
         self.alignment = alignment
+        self.direction = direction
         self.textModifier = textModifier
     }
 
@@ -108,6 +115,6 @@ public struct CrookedText: View {
         let charOffset = Double(charWidth / 2 / radius)
         let arcCharCenteringOffset = -totalArcWidth / 2
         let charArcOffset = prevArcWidth + charOffset + arcCharCenteringOffset + arcSpacingOffset + prevArcSpacingWidth
-        return Angle(radians: charArcOffset)
+        return Angle(radians: charArcOffset + self.advance)
     }
 }

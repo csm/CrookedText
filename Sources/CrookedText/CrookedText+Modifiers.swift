@@ -55,6 +55,12 @@ extension CrookedText {
         }
         return copy
     }
+    
+    public func advance(radians: CGFloat) -> CrookedText {
+        var copy = self
+        copy.advance = radians
+        return copy
+    }
 
 //    public func legibillityWeighted(regular: Font.Weight, bold: Font.Weight) -> some View {
 //        var copy = self
